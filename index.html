@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Art SVG Maker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Pixel Art SVG Maker</h1>
+        <div class="top-controls">
+            <div class="control-group">
+                <label for="grid-width">Largura</label>
+                <input type="number" id="grid-width" value="32" min="4" max="64">
+            </div>
+            <div class="control-group">
+                <label for="grid-height">Altura</label>
+                <input type="number" id="grid-height" value="32" min="4" max="64">
+            </div>
+            <button id="apply-grid">Atualizar Grid</button>
+        </div>
+    </header>
+
+    <main class="workspace">
+        <!-- Sidebar para Ferramentas e Paletas -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3 class="section-title">Ferramentas</h3>
+                <div class="tools-grid">
+                    <button class="tool-btn active" data-tool="pencil" title="Lápis (Pintar)">✏️</button>
+                    <button class="tool-btn" data-tool="eraser" title="Borracha (Apagar)">🧽</button>
+                    <button class="tool-btn" data-tool="eyedropper" title="Conta-gotas (Copiar cor)">💧</button>
+                    <button class="tool-btn" data-tool="replace" title="Substituir Cor">🪄</button>
+                </div>
+                
+                <div class="tool-group mt-2">
+                    <label for="color-picker" class="tool-label">Cor Atual</label>
+                    <input type="color" id="color-picker" value="#000000">
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="section-title">Cores Recentes</h3>
+                <div id="recent-colors-list" class="color-list"></div>
+            </div>
+
+            <div class="sidebar-section drawings-section">
+                <h3 class="section-title">Meus Desenhos</h3>
+                <div class="palette-controls">
+                    <input type="text" id="drawing-name" placeholder="Nome (ex: Espada)" style="flex:1; padding: 0.4rem; border: 1px solid var(--border); border-radius: 6px; outline: none; font-family: inherit; font-size: 0.85rem; min-width: 0;">
+                    <button id="save-drawing-btn" class="primary-btn small-btn" title="Salvar Desenho">💾</button>
+                </div>
+                <div class="palette-controls mt-1">
+                    <select id="saved-drawings-selector">
+                        <option value="">-- Salvos --</option>
+                    </select>
+                    <button id="load-drawing-btn" class="icon-btn-small" title="Carregar">📂</button>
+                    <button id="delete-drawing-btn" class="icon-btn-small danger-text" title="Deletar">🗑️</button>
+                </div>
+            </div>
+
+            <div class="sidebar-section palettes-section">
+                <h3 class="section-title">Minhas Paletas</h3>
+                <div class="palette-controls">
+                    <select id="palette-selector">
+                        <option value="default">Padrão</option>
+                    </select>
+                    <button id="new-palette-btn" class="icon-btn-small" title="Nova Paleta">➕</button>
+                    <button id="delete-palette-btn" class="icon-btn-small danger-text" title="Deletar Paleta">🗑️</button>
+                </div>
+                <div class="palette-actions">
+                    <button id="add-color-btn" class="primary-btn full-width small-btn mt-1">Adicionar Cor à Paleta</button>
+                </div>
+                <div id="palette-colors-list" class="color-list"></div>
+            </div>
+
+            <div class="sidebar-section mt-auto">
+                <button id="clear-btn" class="danger-btn full-width">Limpar Desenho</button>
+                <button id="copy-svg-btn" class="primary-btn full-width mt-1">Copiar SVG</button>
+            </div>
+        </aside>
+
+        <!-- Área de Desenho -->
+        <div class="panels">
+            <div class="panel">
+                <h2 class="panel-title">Draw Your Pattern</h2>
+                <div id="draw-grid-container">
+                    <div class="grid-wrapper">
+                        <div id="draw-grid" class="tool-pencil"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel">
+                <h2 class="panel-title">Pixel Art Pattern (Pronto)</h2>
+                <div id="preview-container">
+                    <!-- SVG vai ser inserido aqui -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
