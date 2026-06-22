@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pixel Art SVG Maker</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -77,7 +78,8 @@
             </div>
 
             <div class="sidebar-section mt-auto">
-                <button id="clear-btn" class="danger-btn full-width">Limpar Desenho</button>
+                <button id="import-svg-btn" class="full-width">Importar SVG</button>
+                <button id="clear-btn" class="danger-btn full-width mt-1">Limpar Desenho</button>
                 <button id="copy-svg-btn" class="primary-btn full-width mt-1">Copiar SVG</button>
             </div>
         </aside>
@@ -100,6 +102,19 @@
             </div>
         </div>
     </main>
+
+    <!-- Modal de Importação -->
+    <div id="import-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>Importar SVG</h3>
+            <p>Cole o código SVG abaixo:</p>
+            <textarea id="svg-import-textarea" rows="10"></textarea>
+            <div class="modal-actions">
+                <button id="cancel-import-btn">Cancelar</button>
+                <button id="confirm-import-btn" class="primary-btn">Importar</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

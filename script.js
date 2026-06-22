@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const recentColorsList = document.getElementById('recent-colors-list');
     const clearBtn = document.getElementById('clear-btn');
     const copySvgBtn = document.getElementById('copy-svg-btn');
+    const importSvgBtn = document.getElementById('import-svg-btn');
+    const importModal = document.getElementById('import-modal');
+    const svgImportTextarea = document.getElementById('svg-import-textarea');
+    const cancelImportBtn = document.getElementById('cancel-import-btn');
+    const confirmImportBtn = document.getElementById('confirm-import-btn');
     
     // Tools
     const toolBtns = document.querySelectorAll('.tool-btn');
@@ -65,6 +70,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     clearBtn.addEventListener('click', initGrid);
     copySvgBtn.addEventListener('click', copySVG);
+
+    importSvgBtn.addEventListener('click', () => {
+        svgImportTextarea.value = '';
+        importModal.style.display = 'flex';
+    });
+
+    cancelImportBtn.addEventListener('click', () => {
+        importModal.style.display = 'none';
+    });
+
+    confirmImportBtn.addEventListener('click', () => {
+        const svgCode = svgImportTextarea.value.trim();
+        if (svgCode) {
+            importSVG(svgCode);
+        }
+        importModal.style.display = 'none';
+    });
 
     // Tools setup
     toolBtns.forEach(btn => {
@@ -400,6 +422,65 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erro ao copiar SVG: ', err);
             alert('Falha ao copiar.');
         });
+    }
+
+    function importSVG(svgCode) {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgCode, "image/svg+xml");
+            const svgElement = doc.querySelector('svg');
+            
+            if (!svgElement) {
+                alert('Código SVG inválido. Certifique-se de que contém a tag <svg>.');
+                return;
+            }
+            
+            let newWidth = 32;
+            let newHeight = 32;
+            
+            const viewBox = svgElement.getAttribute('viewBox');
+            if (viewBox) {
+                const parts = viewBox.split(/[ ,]+/).map(Number);
+                if (parts.length >= 4) {
+                    newWidth = parts[2];
+                    newHeight = parts[3];
+                }
+            } else if (svgElement.getAttribute('width') && svgElement.getAttribute('height')) {
+                newWidth = parseInt(svgElement.getAttribute('width'));
+                newHeight = parseInt(svgElement.getAttribute('height'));
+            }
+            
+            if (newWidth > 64 || newHeight > 64) {
+                if (!confirm(`O SVG tem dimensões grandes (${newWidth}x${newHeight}). O máximo suportado é 64x64. O SVG será redimensionado ou cortado. Deseja continuar?`)) {
+                    return;
+                }
+            }
+            
+            width = Math.min(newWidth, 64);
+            height = Math.min(newHeight, 64);
+            gridWidthInput.value = width;
+            gridHeightInput.value = height;
+            
+            initGrid();
+            
+            const rects = svgElement.querySelectorAll('rect');
+            rects.forEach(rect => {
+                const x = parseFloat(rect.getAttribute('x'));
+                const y = parseFloat(rect.getAttribute('y'));
+                let fill = rect.getAttribute('fill');
+                
+                if (!isNaN(x) && !isNaN(y) && fill && x >= 0 && x < width && y >= 0 && y < height) {
+                    const index = Math.floor(y) * width + Math.floor(x);
+                    gridData[index] = fill;
+                    drawGrid.children[index].style.backgroundColor = fill;
+                }
+            });
+            
+            updatePreview();
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao importar SVG. Verifique o console para mais detalhes.');
+        }
     }
 
     // Palettes Functions
