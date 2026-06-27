@@ -38,9 +38,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let height = parseInt(gridHeightInput.value);
     let currentColor = colorPicker.value;
     let isDrawing = false;
-    let currentTool = 'pencil'; // pencil, eraser, eyedropper, replace
+    let currentTool = 'pencil'; // pencil, eraser, eyedropper, replace, select
     let gridData = [];
     let recentColors = []; // Max 10
+    
+    // State Selection & Dragging
+    let isSelecting = false;
+    let isDraggingSelection = false;
+    let selectionStartX = 0, selectionStartY = 0;
+    let selectionEndX = 0, selectionEndY = 0;
+    let dragStartX = 0, dragStartY = 0;
+    let dragStartSelectionX = 0, dragStartSelectionY = 0;
+    let floatingSelection = null; // { x, y, w, h, data: [] }
+    let lastHoveredIndex = -1;
     
     // Palettes State
     let palettes = JSON.parse(localStorage.getItem('pixelArtPalettes')) || {
@@ -91,6 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tools setup
     toolBtns.forEach(btn => {
         btn.addEventListener('click', () => {
+            if (currentTool === 'select' && btn.dataset.tool !== 'select') {
+                commitSelection();
+            }
             toolBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentTool = btn.dataset.tool;
@@ -98,62 +111,119 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Grid interaction
-    drawGrid.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        if (e.target.classList.contains('pixel-cell')) {
-            isDrawing = true;
-            useTool(e.target);
-        }
-    });
+    // --- MOUSE & TOUCH EVENT HANDLERS ---
+    function getTargetCell(clientX, clientY) {
+        const target = document.elementFromPoint(clientX, clientY);
+        return (target && target.classList.contains('pixel-cell')) ? target : null;
+    }
 
-    document.addEventListener('mouseup', () => {
-        if (isDrawing) {
-            isDrawing = false;
-            if (currentTool === 'pencil') {
-                addRecentColor(currentColor);
+    function handlePointerDown(target) {
+        const index = parseInt(target.dataset.index);
+        const x = index % width;
+        const y = Math.floor(index / width);
+        lastHoveredIndex = index;
+
+        if (currentTool === 'select') {
+            if (floatingSelection && 
+                x >= floatingSelection.x && x < floatingSelection.x + floatingSelection.w && 
+                y >= floatingSelection.y && y < floatingSelection.y + floatingSelection.h) {
+                
+                // Iniciando o arrasto da seleção atual
+                isDraggingSelection = true;
+                dragStartX = x;
+                dragStartY = y;
+                dragStartSelectionX = floatingSelection.x;
+                dragStartSelectionY = floatingSelection.y;
+            } else {
+                // Clicou fora: aplica a seleção anterior e começa uma nova
+                commitSelection();
+                isSelecting = true;
+                selectionStartX = x;
+                selectionStartY = y;
+                selectionEndX = x;
+                selectionEndY = y;
+                renderGrid(); 
             }
-        }
-    });
-
-    drawGrid.addEventListener('mouseover', (e) => {
-        if (isDrawing && e.target.classList.contains('pixel-cell')) {
-            if (currentTool === 'pencil' || currentTool === 'eraser') {
-                useTool(e.target);
-            }
-        }
-    });
-
-    // Touch support
-    drawGrid.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const target = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (target && target.classList.contains('pixel-cell')) {
+        } else {
+            commitSelection();
             isDrawing = true;
             useTool(target);
         }
+    }
+
+    function handlePointerMove(target) {
+        const index = parseInt(target.dataset.index);
+        if (index === lastHoveredIndex) return; // Evitar re-renders desnecessários na mesma célula
+        lastHoveredIndex = index;
+
+        const x = index % width;
+        const y = Math.floor(index / width);
+
+        if (currentTool === 'select') {
+            if (isSelecting) {
+                selectionEndX = x;
+                selectionEndY = y;
+                renderGrid();
+            } else if (isDraggingSelection && floatingSelection) {
+                const dx = x - dragStartX;
+                const dy = y - dragStartY;
+                floatingSelection.x = dragStartSelectionX + dx;
+                floatingSelection.y = dragStartSelectionY + dy;
+                renderGrid();
+            }
+        } else if (isDrawing) {
+            if (currentTool === 'pencil' || currentTool === 'eraser') {
+                useTool(target);
+            }
+        }
+    }
+
+    function handlePointerUp() {
+        if (currentTool === 'select') {
+            if (isSelecting) {
+                isSelecting = false;
+                createFloatingSelection();
+            } else if (isDraggingSelection) {
+                isDraggingSelection = false;
+            }
+        } else if (isDrawing) {
+            isDrawing = false;
+            if (currentTool === 'pencil') addRecentColor(currentColor);
+        }
+        lastHoveredIndex = -1;
+    }
+
+    // Mouse Events
+    drawGrid.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // Apenas botão esquerdo
+        e.preventDefault();
+        if (e.target.classList.contains('pixel-cell')) handlePointerDown(e.target);
+    });
+
+    drawGrid.addEventListener('mousemove', (e) => {
+        if (!isDrawing && !isSelecting && !isDraggingSelection) return;
+        if (e.target.classList.contains('pixel-cell')) handlePointerMove(e.target);
+    });
+
+    document.addEventListener('mouseup', (e) => {
+        if (e.button === 0) handlePointerUp();
+    });
+
+    // Touch Events
+    drawGrid.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const cell = getTargetCell(e.touches[0].clientX, e.touches[0].clientY);
+        if (cell) handlePointerDown(cell);
     }, {passive: false});
 
     drawGrid.addEventListener('touchmove', (e) => {
         e.preventDefault();
-        if (isDrawing && (currentTool === 'pencil' || currentTool === 'eraser')) {
-            const touch = e.touches[0];
-            const target = document.elementFromPoint(touch.clientX, touch.clientY);
-            if (target && target.classList.contains('pixel-cell')) {
-                useTool(target);
-            }
-        }
+        if (!isDrawing && !isSelecting && !isDraggingSelection) return;
+        const cell = getTargetCell(e.touches[0].clientX, e.touches[0].clientY);
+        if (cell) handlePointerMove(cell);
     }, {passive: false});
 
-    document.addEventListener('touchend', () => {
-        if (isDrawing) {
-            isDrawing = false;
-            if (currentTool === 'pencil') {
-                addRecentColor(currentColor);
-            }
-        }
-    });
+    document.addEventListener('touchend', handlePointerUp);
 
     // Palette Event Listeners
     paletteSelector.addEventListener('change', (e) => {
@@ -204,6 +274,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
+        // Se estiver com algo selecionado, aplica a seleção antes de salvar
+        if (floatingSelection) commitSelection();
+
         savedDrawings[name] = {
             width: width,
             height: height,
@@ -264,6 +337,98 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- SELECTION & RENDERING CORE ---
+    
+    function createFloatingSelection() {
+        const minX = Math.min(selectionStartX, selectionEndX);
+        const maxX = Math.max(selectionStartX, selectionEndX);
+        const minY = Math.min(selectionStartY, selectionEndY);
+        const maxY = Math.max(selectionStartY, selectionEndY);
+
+        const w = maxX - minX + 1;
+        const h = maxY - minY + 1;
+        const data = [];
+
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+                const idx = y * width + x;
+                data.push(gridData[idx]);
+                gridData[idx] = null; // Limpa a posição base para o pixel mover visualmente
+            }
+        }
+
+        floatingSelection = { x: minX, y: minY, w, h, data };
+        renderGrid();
+    }
+
+    function commitSelection() {
+        if (!floatingSelection) return;
+        
+        for (let y = 0; y < floatingSelection.h; y++) {
+            for (let x = 0; x < floatingSelection.w; x++) {
+                const fColor = floatingSelection.data[y * floatingSelection.w + x];
+                // Coloca de volta os pixels se eles existirem (não sobrepõe com transparente)
+                if (fColor) {
+                    const targetX = floatingSelection.x + x;
+                    const targetY = floatingSelection.y + y;
+                    
+                    if (targetX >= 0 && targetX < width && targetY >= 0 && targetY < height) {
+                        gridData[targetY * width + targetX] = fColor;
+                    }
+                }
+            }
+        }
+        floatingSelection = null;
+        renderGrid();
+    }
+
+    // renderGrid repinta todo o grid unindo a camada base (gridData) e a seleção flutuante.
+    function renderGrid() {
+        let sMinX = -1, sMaxX = -1, sMinY = -1, sMaxY = -1;
+        if (isSelecting) {
+            sMinX = Math.min(selectionStartX, selectionEndX);
+            sMaxX = Math.max(selectionStartX, selectionEndX);
+            sMinY = Math.min(selectionStartY, selectionEndY);
+            sMaxY = Math.max(selectionStartY, selectionEndY);
+        } else if (floatingSelection) {
+            sMinX = floatingSelection.x;
+            sMaxX = floatingSelection.x + floatingSelection.w - 1;
+            sMinY = floatingSelection.y;
+            sMaxY = floatingSelection.y + floatingSelection.h - 1;
+        }
+
+        const cells = drawGrid.children;
+        for (let i = 0; i < width * height; i++) {
+            const x = i % width;
+            const y = Math.floor(i / width);
+            const cell = cells[i];
+
+            let color = gridData[i];
+            
+            // Sobrescreve com o pixel flutuante sendo movido (se aplicável)
+            if (floatingSelection && x >= sMinX && x <= sMaxX && y >= sMinY && y <= sMaxY) {
+                const localX = x - floatingSelection.x;
+                const localY = y - floatingSelection.y;
+                const fColor = floatingSelection.data[localY * floatingSelection.w + localX];
+                if (fColor) color = fColor;
+            }
+
+            cell.style.backgroundColor = color || 'transparent';
+
+            // Tratamento visual das bordas da seleção (usando as classes com pseudo-elementos no CSS)
+            cell.classList.remove('selection-area', 'selection-top', 'selection-bottom', 'selection-left', 'selection-right');
+
+            if ((isSelecting || floatingSelection) && x >= sMinX && x <= sMaxX && y >= sMinY && y <= sMaxY) {
+                cell.classList.add('selection-area');
+                if (y === sMinY) cell.classList.add('selection-top');
+                if (y === sMaxY) cell.classList.add('selection-bottom');
+                if (x === sMinX) cell.classList.add('selection-left');
+                if (x === sMaxX) cell.classList.add('selection-right');
+            }
+        }
+        updatePreview();
+    }
+
     // Core Functions
     function useTool(cell) {
         const index = parseInt(cell.dataset.index);
@@ -294,10 +459,9 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 0; i < gridData.length; i++) {
                 if (gridData[i] === targetColor) {
                     gridData[i] = currentColor;
-                    drawGrid.children[i].style.backgroundColor = currentColor;
                 }
             }
-            updatePreview();
+            renderGrid(); // Como muda multiplos blocos, usamos a repintura total
             addRecentColor(currentColor);
         }
     }
@@ -310,6 +474,8 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeGrid();
 
         gridData = new Array(width * height).fill(null);
+        floatingSelection = null;
+        isSelecting = false;
         
         const midX = Math.ceil(width / 2) - 1;
         const midY = Math.ceil(height / 2) - 1;
@@ -356,7 +522,16 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const index = y * width + x;
-                const color = gridData[index];
+                let color = gridData[index];
+                
+                // Incorpora os blocos flutuantes da seleção no SVG
+                if (floatingSelection && x >= floatingSelection.x && x < floatingSelection.x + floatingSelection.w && y >= floatingSelection.y && y < floatingSelection.y + floatingSelection.h) {
+                    const localX = x - floatingSelection.x;
+                    const localY = y - floatingSelection.y;
+                    const fColor = floatingSelection.data[localY * floatingSelection.w + localX];
+                    if (fColor) color = fColor;
+                }
+
                 if (color && color !== 'transparent') {
                     svgElements += `<rect x="${x}" y="${y}" width="1" height="1" fill="${color}" />\n  `;
                 }
@@ -472,11 +647,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!isNaN(x) && !isNaN(y) && fill && x >= 0 && x < width && y >= 0 && y < height) {
                     const index = Math.floor(y) * width + Math.floor(x);
                     gridData[index] = fill;
-                    drawGrid.children[index].style.backgroundColor = fill;
                 }
             });
             
-            updatePreview();
+            renderGrid();
         } catch (e) {
             console.error(e);
             alert('Erro ao importar SVG. Verifique o console para mais detalhes.');
