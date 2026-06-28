@@ -16,6 +16,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelImportBtn = document.getElementById('cancel-import-btn');
     const confirmImportBtn = document.getElementById('confirm-import-btn');
     
+    // Novos Elementos para Mesclar e Dividir
+    const openMergeBtn = document.getElementById('open-merge-btn');
+    const openSplitBtn = document.getElementById('open-split-btn');
+    const mergeModal = document.getElementById('merge-modal');
+    const splitModal = document.getElementById('split-modal');
+    const cancelMergeBtn = document.getElementById('cancel-merge-btn');
+    const confirmMergeBtn = document.getElementById('confirm-merge-btn');
+    const cancelSplitBtn = document.getElementById('cancel-split-btn');
+    const confirmSplitBtn = document.getElementById('confirm-split-btn');
+    
+    const mergeD1 = document.getElementById('merge-d1');
+    const mergeD2 = document.getElementById('merge-d2');
+    const mergeDirection = document.getElementById('merge-direction');
+    const mergeName = document.getElementById('merge-name');
+    
+    const splitTarget = document.getElementById('split-target');
+    const splitDirection = document.getElementById('split-direction');
+    const splitName1 = document.getElementById('split-name1');
+    const splitName2 = document.getElementById('split-name2');
+    
     // Tools
     const toolBtns = document.querySelectorAll('.tool-btn');
     
@@ -97,6 +117,137 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         importModal.style.display = 'none';
     });
+
+    // ============================================
+    // Lógica Matemática de Mesclagem (Merge)
+    // ============================================
+    openMergeBtn.addEventListener('click', () => {
+        populateDrawingSelects(mergeD1);
+        populateDrawingSelects(mergeD2);
+        mergeName.value = '';
+        mergeModal.style.display = 'flex';
+    });
+
+    cancelMergeBtn.addEventListener('click', () => mergeModal.style.display = 'none');
+
+    confirmMergeBtn.addEventListener('click', () => {
+        if (!mergeD1.value || !mergeD2.value) return alert('Selecione os dois desenhos.');
+        if (!mergeName.value.trim()) return alert('Dê um nome para o novo desenho.');
+        
+        const d1 = savedDrawings[mergeD1.value];
+        const d2 = savedDrawings[mergeD2.value];
+        const dir = mergeDirection.value;
+        let newWidth, newHeight, newGrid = [];
+
+        if (dir === 'horizontal') {
+            newWidth = d1.width + d2.width;
+            newHeight = Math.max(d1.height, d2.height);
+            newGrid = new Array(newWidth * newHeight).fill(null);
+            
+            // Pinta Desenho 1 na Esquerda
+            for (let y = 0; y < d1.height; y++) {
+                for (let x = 0; x < d1.width; x++) {
+                    newGrid[y * newWidth + x] = d1.gridData[y * d1.width + x];
+                }
+            }
+            // Pinta Desenho 2 na Direita, deslocando X
+            for (let y = 0; y < d2.height; y++) {
+                for (let x = 0; x < d2.width; x++) {
+                    newGrid[y * newWidth + (x + d1.width)] = d2.gridData[y * d2.width + x];
+                }
+            }
+        } else { // vertical
+            newWidth = Math.max(d1.width, d2.width);
+            newHeight = d1.height + d2.height;
+            newGrid = new Array(newWidth * newHeight).fill(null);
+            
+            // Pinta Desenho 1 no Topo
+            for (let y = 0; y < d1.height; y++) {
+                for (let x = 0; x < d1.width; x++) {
+                    newGrid[y * newWidth + x] = d1.gridData[y * d1.width + x];
+                }
+            }
+            // Pinta Desenho 2 Em Baixo, deslocando Y
+            for (let y = 0; y < d2.height; y++) {
+                for (let x = 0; x < d2.width; x++) {
+                    newGrid[(y + d1.height) * newWidth + x] = d2.gridData[y * d2.width + x];
+                }
+            }
+        }
+
+        savedDrawings[mergeName.value.trim()] = { width: newWidth, height: newHeight, gridData: newGrid };
+        localStorage.setItem('pixelArtDrawings', JSON.stringify(savedDrawings));
+        updateDrawingsSelector();
+        mergeModal.style.display = 'none';
+        alert('Desenhos mesclados com sucesso! Selecione-o na lista para carregar.');
+    });
+
+    // ============================================
+    // Lógica Matemática de Divisão (Split)
+    // ============================================
+    openSplitBtn.addEventListener('click', () => {
+        populateDrawingSelects(splitTarget);
+        splitName1.value = '';
+        splitName2.value = '';
+        splitModal.style.display = 'flex';
+    });
+
+    cancelSplitBtn.addEventListener('click', () => splitModal.style.display = 'none');
+
+    confirmSplitBtn.addEventListener('click', () => {
+        if (!splitTarget.value) return alert('Selecione um desenho.');
+        if (!splitName1.value.trim() || !splitName2.value.trim()) return alert('Dê nome para as duas partes.');
+        
+        const d = savedDrawings[splitTarget.value];
+        const dir = splitDirection.value;
+        let w1, h1, w2, h2, grid1, grid2;
+
+        if (dir === 'vertical-cut') {
+            w1 = Math.floor(d.width / 2);
+            w2 = d.width - w1;
+            h1 = h2 = d.height;
+            grid1 = new Array(w1 * h1).fill(null);
+            grid2 = new Array(w2 * h2).fill(null);
+
+            for (let y = 0; y < d.height; y++) {
+                for (let x = 0; x < d.width; x++) {
+                    if (x < w1) grid1[y * w1 + x] = d.gridData[y * d.width + x];
+                    else grid2[y * w2 + (x - w1)] = d.gridData[y * d.width + x];
+                }
+            }
+        } else { // horizontal-cut
+            w1 = w2 = d.width;
+            h1 = Math.floor(d.height / 2);
+            h2 = d.height - h1;
+            grid1 = new Array(w1 * h1).fill(null);
+            grid2 = new Array(w2 * h2).fill(null);
+
+            for (let y = 0; y < d.height; y++) {
+                for (let x = 0; x < d.width; x++) {
+                    if (y < h1) grid1[y * w1 + x] = d.gridData[y * d.width + x];
+                    else grid2[(y - h1) * w2 + x] = d.gridData[y * d.width + x];
+                }
+            }
+        }
+
+        savedDrawings[splitName1.value.trim()] = { width: w1, height: h1, gridData: grid1 };
+        savedDrawings[splitName2.value.trim()] = { width: w2, height: h2, gridData: grid2 };
+        localStorage.setItem('pixelArtDrawings', JSON.stringify(savedDrawings));
+        updateDrawingsSelector();
+        splitModal.style.display = 'none';
+        alert('Desenho dividido com sucesso! As partes estão salvas na sua lista.');
+    });
+
+    // Função auxiliar para preencher as seleções de desenhos salvos nos modais
+    function populateDrawingSelects(selectElement) {
+        selectElement.innerHTML = '';
+        Object.keys(savedDrawings).forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            selectElement.appendChild(option);
+        });
+    }
 
     // Tools setup
     toolBtns.forEach(btn => {

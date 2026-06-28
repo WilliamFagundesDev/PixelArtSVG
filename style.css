@@ -88,10 +88,12 @@ select { flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radiu
 .icon-btn-small { border: none; background: transparent; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s; }
 .icon-btn-small:hover { opacity: 1; }
 
-button { padding: 0.6rem 1rem; border: none; border-radius: 6px; font-family: inherit; font-weight: 600; cursor: pointer; transition: all 0.2s ease; background: var(--border); color: var(--text-main); }
+button { padding: 0.3rem; border: none; border-radius: 6px; font-family: inherit; font-weight: 600; cursor: pointer; transition: all 0.2s ease; background: var(--border); color: var(--text-main); }
 button:hover { filter: brightness(0.95); }
 .primary-btn { background: var(--primary); color: white; }
 .primary-btn:hover { background: var(--primary-hover); }
+.secondary-btn { background: #e5e7eb; color: var(--text-main); }
+.secondary-btn:hover { background: #d1d5db; }
 .danger-btn { background: white; color: var(--danger); border: 1px solid var(--danger); }
 .danger-btn:hover { background: var(--danger); color: white; }
 .full-width { width: 100%; }
@@ -99,6 +101,10 @@ button:hover { filter: brightness(0.95); }
 .mt-2 { margin-top: 0.5rem; }
 .mt-auto { margin-top: auto; }
 .small-btn { padding: 0.4rem 0.5rem; font-size: 0.85rem; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+.control-group-modal { display: flex; flex-direction: column; gap: 0.2rem; }
+.control-group-modal select, .control-group-modal input { padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; outline: none; font-family: inherit; font-size: 0.9rem; }
 
 .panels {
     flex: 1;
@@ -154,13 +160,34 @@ button:hover { filter: brightness(0.95); }
 #draw-grid.tool-eyedropper { cursor: copy; }
 #draw-grid.tool-replace { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 12l10 10 10-10L12 2z"/></svg>') 12 12, pointer; }
 
+/* Cursor de seleção */
+#draw-grid.tool-select { cursor: crosshair; }
+#draw-grid.tool-select .selection-area { cursor: move; }
+
 .pixel-cell {
     background-color: transparent;
     user-select: none;
     border: 1px solid rgba(0,0,0,0.05); /* Borda muito sutil dentro do grid */
     border-right: 1px solid var(--grid-line);
     border-bottom: 1px solid var(--grid-line);
+    position: relative; /* Necessário para a borda de seleção via pseudo-elemento */
 }
+
+/* Elemento pseudo para desenhar a borda de seleção sem afetar o layout grid */
+.pixel-cell::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Estilos da caixa de seleção */
+.pixel-cell.selection-area::after { background: rgba(0, 0, 0, 0.15); }
+.pixel-cell.selection-top::after { border-top: 2px dashed #000; }
+.pixel-cell.selection-bottom::after { border-bottom: 2px dashed #000; }
+.pixel-cell.selection-left::after { border-left: 2px dashed #000; }
+.pixel-cell.selection-right::after { border-right: 2px dashed #000; }
 
 .pixel-cell.center-col {
     border-right: 2px solid var(--primary);
@@ -224,42 +251,4 @@ button:hover { filter: brightness(0.95); }
     display: flex;
     gap: 10px;
     justify-content: flex-end;
-}
-
-#draw-grid.tool-pencil { cursor: crosshair; }
-#draw-grid.tool-eraser { cursor: cell; }
-#draw-grid.tool-eyedropper { cursor: copy; }
-#draw-grid.tool-replace { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 12l10 10 10-10L12 2z"/></svg>') 12 12, pointer; }
-
-/* Cursor de seleção */
-#draw-grid.tool-select { cursor: crosshair; }
-#draw-grid.tool-select .selection-area { cursor: move; }
-
-.pixel-cell {
-    background-color: transparent;
-    user-select: none;
-    border: 1px solid rgba(0,0,0,0.05); /* Borda muito sutil dentro do grid */
-    border-right: 1px solid var(--grid-line);
-    border-bottom: 1px solid var(--grid-line);
-    position: relative; /* Necessário para a borda de seleção via pseudo-elemento */
-}
-
-/* Elemento pseudo para desenhar a borda de seleção sem afetar o layout grid */
-.pixel-cell::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
-    z-index: 5;
-}
-
-/* Estilos da caixa de seleção */
-.pixel-cell.selection-area::after { background: rgba(0, 0, 0, 0.15); }
-.pixel-cell.selection-top::after { border-top: 2px dashed #000; }
-.pixel-cell.selection-bottom::after { border-bottom: 2px dashed #000; }
-.pixel-cell.selection-left::after { border-left: 2px dashed #000; }
-.pixel-cell.selection-right::after { border-right: 2px dashed #000; }
-
-.pixel-cell.center-col {
-    border-right: 2px solid var(--primary);
 }

@@ -63,6 +63,15 @@
                 </div>
             </div>
 
+            <!-- NOVA SESSÃO: Mesclar / Dividir -->
+            <div class="sidebar-section operations-section mt-2">
+                <h3 class="section-title">Operações Avançadas</h3>
+                <div class="grid-2">
+                    <button id="open-merge-btn" class="secondary-btn small-btn" title="Juntar 2 desenhos em 1">➕ Mesclar</button>
+                    <button id="open-split-btn" class="secondary-btn small-btn" title="Dividir 1 desenho em 2">✂️ Dividir</button>
+                </div>
+            </div>
+
             <div class="sidebar-section palettes-section">
                 <h3 class="section-title">Minhas Paletas</h3>
                 <div class="palette-controls">
@@ -111,8 +120,70 @@
             <p>Cole o código SVG abaixo:</p>
             <textarea id="svg-import-textarea" rows="10"></textarea>
             <div class="modal-actions">
-                <button id="cancel-import-btn">Cancelar</button>
+                <button id="cancel-import-btn" class="secondary-btn">Cancelar</button>
                 <button id="confirm-import-btn" class="primary-btn">Importar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Mesclagem -->
+    <div id="merge-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>Mesclar Desenhos</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">Junte dois desenhos salvos num só.</p>
+            <div class="control-group-modal">
+                <label>Desenho 1 (Esquerda ou Cima):</label>
+                <select id="merge-d1"></select>
+            </div>
+            <div class="control-group-modal mt-1">
+                <label>Desenho 2 (Direita ou Baixo):</label>
+                <select id="merge-d2"></select>
+            </div>
+            <div class="control-group-modal mt-1">
+                <label>Direção da Mesclagem:</label>
+                <select id="merge-direction">
+                    <option value="horizontal">Horizontal (Lado a Lado)</option>
+                    <option value="vertical">Vertical (Em Cima / Em Baixo)</option>
+                </select>
+            </div>
+            <div class="control-group-modal mt-1">
+                <label>Guardar como (Nome):</label>
+                <input type="text" id="merge-name" placeholder="Ex: Espada Dupla">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-merge-btn" class="secondary-btn">Cancelar</button>
+                <button id="confirm-merge-btn" class="primary-btn">Mesclar e Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Divisão -->
+    <div id="split-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>Dividir Desenho</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">Corte um desenho pela metade.</p>
+            <div class="control-group-modal">
+                <label>Desenho para Cortar:</label>
+                <select id="split-target"></select>
+            </div>
+            <div class="control-group-modal mt-1">
+                <label>Direção do Corte:</label>
+                <select id="split-direction">
+                    <option value="vertical-cut">Corte Vertical (Gera Esquerda e Direita)</option>
+                    <option value="horizontal-cut">Corte Horizontal (Gera Cima e Baixo)</option>
+                </select>
+            </div>
+            <div class="control-group-modal mt-1">
+                <label>Guardar Parte 1 (Esq/Cima) como:</label>
+                <input type="text" id="split-name1" placeholder="Ex: Parte 1">
+            </div>
+            <div class="control-group-modal mt-1">
+                <label>Guardar Parte 2 (Dir/Baixo) como:</label>
+                <input type="text" id="split-name2" placeholder="Ex: Parte 2">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-split-btn" class="secondary-btn">Cancelar</button>
+                <button id="confirm-split-btn" class="primary-btn">Cortar e Guardar</button>
             </div>
         </div>
     </div>
